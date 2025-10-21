@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Healthcare Management System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles1.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>🏥 Healthcare Management System</h1>
+            <div id="auth-section">
+                <div id="login-form" class="auth-form">
+                    <h3>Login</h3>
+                    <input type="text" id="username" placeholder="Username" value="admin">
+                    <input type="password" id="password" placeholder="Password" value="admin123">
+                    <button onclick="login()">Login</button>
+                    <p><strong>Default Admin:</strong> admin/admin123</p>
+                </div>
+                <div id="user-info" style="display: none;">
+                    <span>Welcome, <span id="current-user"></span> <span id="admin-indicator" class="admin-indicator" style="display: none;">ADMIN</span></span>
+                    <button onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content" style="display: none;">
+            <!-- Search Section -->
+            <section class="section">
+                <h2>🔍 Search Patients</h2>
+                <div class="form-card">
+                    <input type="text" id="search-query" placeholder="Search by name or condition...">
+                    <button onclick="searchPatients()">Search</button>
+                    <button onclick="clearSearch()">Clear</button>
+                </div>
+            </section>
+
+            <!-- Patient Management -->
+            <section class="section">
+                <h2>👥 Patient Management</h2>
+                
+                <!-- Add Patient Form -->
+                <div class="form-card">
+                    <h3>Add New Patient</h3>
+                    <div class="form-group">
+                        <input type="text" id="patient-name" placeholder="Full Name">
+                    </div>
+                    <div class="form-group">
+                        <input type="number" id="patient-age" placeholder="Age" min="0" max="120">
+                    </div>
+                    <div class="form-group">
+                        <select id="patient-gender">
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="patient-condition" placeholder="Medical Condition">
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="patient-image" placeholder="Image URL (optional)">
+                    </div>
+                    <div class="form-actions">
+                        <button onclick="addPatient()">Add Patient</button>
+                        <button onclick="quickFillPatient()" class="quick-action">Quick Fill</button>
+                        <button onclick="clearPatientForm()" class="secondary-btn">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Patients List -->
+                <div class="card">
+                    <h3>Patients List</h3>
+                    <div class="list-header">
+                        <button onclick="loadPatients()">Refresh Patients</button>
+                        <span id="patients-count" class="count-badge">0 patients</span>
+                    </div>
+                    <div id="patients-list" class="list-container"></div>
+                    <div class="pagination">
+                        <button id="prev-page" onclick="changePage(-1)">Previous</button>
+                        <span id="page-info">Page 1</span>
+                        <button id="next-page" onclick="changePage(1)">Next</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Appointment Management -->
+            <section class="section">
+                <h2>📅 Appointment Management</h2>
+                
+                <!-- Add Appointment Form -->
+                <div class="form-card">
+                    <h3>Add Appointment</h3>
+                    <div class="form-group">
+                        <input type="text" id="appointment-patient-id" placeholder="Patient ID">
+                        <small>Enter valid Patient ID from the list above</small>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" id="appointment-doctor" placeholder="Doctor Name">
+                    </div>
+                    <div class="form-group">
+                        <input type="datetime-local" id="appointment-date">
+                    </div>
+                    <div class="form-group">
+                        <textarea id="appointment-notes" placeholder="Appointment notes..." rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <select id="appointment-status">
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button onclick="addAppointment()">Add Appointment</button>
+                        <button onclick="quickFillAppointment()" class="quick-action">Quick Fill</button>
+                        <button onclick="clearAppointmentForm()" class="secondary-btn">Clear</button>
+                    </div>
+                </div>
+
+                <!-- View Appointments -->
+                <div class="card">
+                    <h3>View Appointments</h3>
+                    <div class="form-group">
+                        <input type="text" id="view-patient-id" placeholder="Patient ID">
+                        <button onclick="viewAppointments()">View Appointments</button>
+                    </div>
+                    <div id="appointments-list" class="list-container"></div>
+                </div>
+            </section>
+
+            <!-- Admin Section -->
+            <section id="admin-section" class="section admin-only" style="display: none;">
+                <h2>🔒 Admin Panel <span class="admin-indicator">ADMINISTRATOR</span></h2>
+                
+                <!-- System Statistics -->
+                <div class="card">
+                    <h3>📊 System Statistics</h3>
+                    <div class="form-actions">
+                        <button onclick="systemStats()">View Statistics</button>
+                        <button onclick="loadAppointmentStats()">Appointment Stats</button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="form-card">
+                    <h3>⚡ Quick Actions</h3>
+                    <div class="form-actions">
+                        <button onclick="generateSampleData()" class="quick-action">Generate Sample Data</button>
+                        <button onclick="clearAllForms()" class="secondary-btn">Clear All Forms</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Patient Details Modal -->
+        <div id="patient-details-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('patient-details-modal')">&times;</span>
+                <h3>Patient Details</h3>
+                <div id="patient-details-content"></div>
+            </div>
+        </div>
+
+        <!-- Edit Patient Modal -->
+        <div id="edit-patient-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('edit-patient-modal')">&times;</span>
+                <h3>Edit Patient</h3>
+                <div id="edit-patient-content"></div>
+            </div>
+        </div>
+
+        <!-- Stats Modal -->
+        <div id="stats-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close" onclick="closeModal('stats-modal')">&times;</span>
+                <h3>System Statistics</h3>
+                <div id="stats-content"></div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+
+        <!-- Messages -->
+        <div id="message" class="message"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

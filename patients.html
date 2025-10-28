@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Patient Portal (Wireframe)</title>
+  <style>
+    :root { --bg:#f7f7f7; --card:#fff; --text:#222; --muted:#555; --border:#ccc; }
+    *{box-sizing:border-box}
+    body{margin:0;font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--text); background:var(--bg)}
+    .wrap{max-width:1100px;margin:auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .title{font-size:26px;font-weight:700}
+    .logout{border:1px solid var(--border);background:#fff;padding:6px 12px;border-radius:6px;cursor:pointer}
+    nav{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    nav a{padding:6px 10px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text)}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;min-height:160px}
+    .card h2{margin:0 0 10px;font-size:18px}
+    .row{border:1px dashed var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+    .status{font-size:13px;color:var(--muted)}
+    .btn{padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;margin-top:6px}
+    .input-group{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+    input, select, textarea{border:1px solid var(--border);border-radius:6px;padding:8px;font-size:14px;background:#fafafa}
+    footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">Patient Portal (Wireframe)</div>
+      <button class="logout">Log out</button>
+    </header>
+
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#">My Uploads</a>
+      <a href="#">Appointments</a>
+      <a href="#">Messages</a>
+    </nav>
+
+    <div class="grid">
+      <!-- Left: My Uploads -->
+      <section class="card">
+        <h2>My Uploads</h2>
+        <div class="row">
+          <strong>Skin Rash Image</strong><br>
+          <span class="status">Associated with: Consultation on 18 Oct 2025 (Dermatology Review)</span><br>
+          <span class="status">Status: Under Review</span>
+        </div>
+        <div class="row">
+          <strong>Blood Test Report (PDF)</strong><br>
+          <span class="status">Associated with: Annual Health Check – 05 Sep 2025</span><br>
+          <span class="status">Status: Reviewed</span>
+        </div>
+      </section>
+
+      <!-- Right: Upload Multimedia -->
+      <section class="card">
+        <h2>Upload Multimedia Item</h2>
+        <div class="input-group">
+          <label for="assoc">Associate With:</label>
+          <select id="assoc">
+            <option>-- Select --</option>
+            <option>New Consultation</option>
+            <option>Existing Appointment</option>
+            <option>Follow-up Visit</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="desc">Description:</label>
+          <textarea id="desc" rows="3" placeholder=""></textarea>
+        </div>
+        <div class="input-group">
+          <label for="file">Select File:</label>
+          <input type="file" id="file" />
+        </div>
+        <button class="btn">Browse Computer</button>
+        <button class="btn">Upload File</button>
+      </section>
+
+      <!-- Left: Appointment History -->
+      <section class="card">
+        <h2>Recent Appointments</h2>
+        <div class="row">
+          <strong>Consultation with GP 1</strong><br>
+          <span class="status">Date: 18 Oct 2025 – Dermatology Review</span><br>
+          <span class="status">Follow-up: Upload image for review</span>
+        </div>
+        <div class="row">
+          <strong>Routine Checkup (GP 2)</strong><br>
+          <span class="status">Date: 05 Sep 2025 – General Health</span><br>
+          <span class="status">Follow-up: Completed</span>
+        </div>
+      </section>
+
+      <!-- Right: Book Appointment -->
+      <section class="card">
+        <h2>Book Consultation</h2>
+        <div class="input-group">
+          <label for="reason">Reason for Appointment:</label>
+          <input type="text" id="reason" placeholder= />
+        </div>
+        <div class="input-group">
+          <label for="date">Preferred Date:</label>
+          <input type="date" id="date" />
+        </div>
+        <button class="btn">Submit Request</button>
+      </section>
+    </div>
+
+    
+  </div>
+</body>
+</html>

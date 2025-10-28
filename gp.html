@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GP Portal (Wireframe)</title>
+  <style>
+    :root { --bg:#f7f7f7; --card:#fff; --text:#222; --muted:#555; --border:#ccc; }
+    *{box-sizing:border-box}
+    body{margin:0;font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Arial; color:var(--text); background:var(--bg)}
+    .wrap{max-width:1200px;margin:auto;padding:24px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .title{font-size:26px;font-weight:700}
+    .logout{border:1px solid var(--border);background:#fff;padding:6px 12px;border-radius:6px;cursor:pointer}
+    nav{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    nav a{padding:6px 10px;border:1px solid var(--border);border-radius:8px;text-decoration:none;color:var(--text)}
+    .grid{display:grid;grid-template-columns:280px 1fr 360px;gap:16px}
+    @media (max-width:1000px){.grid{grid-template-columns:1fr}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;min-height:160px}
+    .card h2{margin:0 0 10px;font-size:18px}
+    .row{border:1px dashed var(--border);border-radius:8px;padding:10px;margin-bottom:8px}
+    .status{font-size:13px;color:var(--muted)}
+    .btn{padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;margin-top:6px}
+    .input-group{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+    input, select, textarea{border:1px solid var(--border);border-radius:6px;padding:8px;font-size:14px;background:#fafafa}
+    footer{margin-top:24px;color:var(--muted);font-size:12px;text-align:center}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">GP Portal (Wireframe)</div>
+      <button class="logout">Log out</button>
+    </header>
+
+    <nav>
+      <a href="#">Dashboard</a>
+      <a href="#">Patient Records</a>
+      <a href="#">Uploads</a>
+      <a href="#">Messages</a>
+    </nav>
+
+    <div class="grid">
+      <!-- Left: Patient List -->
+      <aside class="card">
+        <h2>Patients</h2>
+        <div class="row">
+          <strong>Patient 1</strong><br>
+          <span class="status">Last upload: 18 Oct 2025 — Rash Image</span><br>
+          <span class="status">Status: Under Review</span><br>
+          <button class="btn">View Record</button>
+        </div>
+        <div class="row">
+          <strong>Patient 2</strong><br>
+          <span class="status">Last upload: 05 Sep 2025 — Blood Test Report</span><br>
+          <span class="status">Status: Reviewed</span><br>
+          <button class="btn">View Record</button>
+        </div>
+      </aside>
+
+      <!-- Middle: Multimedia Review Area -->
+      <main class="card">
+        <h2>Selected Patient Record</h2>
+        <div class="row">
+          <strong>Associated Appointment:</strong><br>
+          <span class="status">Consultation on 18 Oct 2025 (Dermatology Review)</span><br><br>
+          <strong>Uploaded File:</strong><br>
+          <span class="status">Skin Rash Image (JPG)</span><br>
+          <div class="row" style="margin-top:8px;text-align:center;background:#fafafa;height:140px;display:flex;align-items:center;justify-content:center;">
+            [ Image/video/file here ]
+          </div>
+        </div>
+        <div class="input-group" style="margin-top:10px;">
+          <label for="notes">Add Review Notes:</label>
+          <textarea id="notes" rows="4" placeholder=></textarea>
+        </div>
+        <button class="btn">Mark as Reviewed</button>
+      </main>
+
+      <!-- Right: Upload Result or Internal File -->
+      <section class="card">
+        <h2>Upload Result / Internal File</h2>
+        <div class="input-group">
+          <label for="assoc">Associate With:</label>
+          <select id="assoc">
+            <option>-- Select Appointment --</option>
+            <option>18 Oct 2025 - Dermatology Review</option>
+            <option>05 Sep 2025 - Health Check</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="desc">Description:</label>
+          <textarea id="desc" rows="3" placeholder="Description"></textarea>
+        </div>
+        <div class="input-group">
+          <label for="file">Select File:</label>
+          <input type="file" id="file" />
+        </div>
+        <button class="btn">Browse Computer</button>
+        <button class="btn">Upload File</button>
+      </section>
+    </div>
+
+    <footer>
+      
+    </footer>
+  </div>
+</body>
+</html>
+

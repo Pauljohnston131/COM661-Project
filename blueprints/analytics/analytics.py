@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from decorators import jwt_required
 import globals
+from bson import ObjectId
 
 analytics_bp = Blueprint('analytics_bp', __name__, url_prefix='/api/v1.0')
 patients = globals.db["patients"]
@@ -10,13 +11,27 @@ patients = globals.db["patients"]
 def search_patients():
     """Search patients by name or condition."""
     q = request.args.get("q", "")
+    
     results = patients.find({
         "$or": [
             {"name": {"$regex": q, "$options": "i"}},
             {"condition": {"$regex": q, "$options": "i"}}
         ]
     })
-    data = [{**p, "_id": str(p["_id"])} for p in results]
+
+    data = []
+    for p in results:
+        p["_id"] = str(p["_id"])
+
+        # Convert embedded ObjectIDs
+        for field in ["appointments", "prescriptions", "careplans"]:
+            if field in p:
+                for sub in p[field]:
+                    if isinstance(sub.get("_id"), ObjectId):
+                        sub["_id"] = str(sub["_id"])
+
+        data.append(p)
+
     return jsonify({"results": data, "count": len(data)})
 
 @analytics_bp.route("/stats/appointments", methods=["GET"])

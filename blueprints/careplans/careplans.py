@@ -9,7 +9,7 @@ patients = globals.db["patients"]
 def is_valid_objectid(id):
     return bool(re.fullmatch(r"[0-9a-fA-F]{24}", id))
 
-@careplans_bp.route("/<string:pid>", methods=["GET"])
+@careplans_bp.route("/<string:pid>/careplans", methods=["GET"])
 @jwt_required
 def list_careplans(pid):
     """List all careplans for a patient."""
@@ -23,7 +23,7 @@ def list_careplans(pid):
             c["_id"] = str(c["_id"])
     return jsonify(doc)
 
-@careplans_bp.route("/<string:pid>", methods=["POST"])
+@careplans_bp.route("/<string:pid>/careplans", methods=["POST"])
 @jwt_required
 def add_careplan(pid):
     """Add careplan for a patient."""
@@ -41,7 +41,7 @@ def add_careplan(pid):
     patients.update_one({"_id": ObjectId(pid)}, {"$push": {"careplans": cp}})
     return jsonify({"message": "Careplan added", "id": str(cp["_id"])}), 201
 
-@careplans_bp.route("/<string:pid>/<string:cid>", methods=["PUT"])
+@careplans_bp.route("/<string:pid>/careplans/<string:cid>", methods=["PUT"])
 @jwt_required
 @admin_required
 def update_careplan(pid, cid):
@@ -61,7 +61,7 @@ def update_careplan(pid, cid):
         return jsonify({"error": "Careplan not found"}), 404
     return jsonify({"message": "Careplan updated"})
 
-@careplans_bp.route("/<string:pid>/<string:cid>", methods=["DELETE"])
+@careplans_bp.route("/<string:pid>/careplans/<string:cid>", methods=["DELETE"])
 @jwt_required
 @admin_required
 def delete_careplan(pid, cid):

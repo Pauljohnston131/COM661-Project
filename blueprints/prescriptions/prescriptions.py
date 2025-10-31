@@ -9,7 +9,7 @@ patients = globals.db["patients"]
 def is_valid_objectid(id):
     return bool(re.fullmatch(r"[0-9a-fA-F]{24}", id))
 
-@prescriptions_bp.route("/<string:pid>", methods=["GET"])
+@prescriptions_bp.route("/<string:pid>/prescriptions", methods=["GET"])
 @jwt_required
 def list_prescriptions(pid):
     """List all prescriptions for a patient."""
@@ -23,7 +23,7 @@ def list_prescriptions(pid):
             p["_id"] = str(p["_id"])
     return jsonify(doc)
 
-@prescriptions_bp.route("/<string:pid>", methods=["POST"])
+@prescriptions_bp.route("/<string:pid>/prescriptions", methods=["POST"])
 @jwt_required
 def add_prescription(pid):
     """Add prescription to patient."""
@@ -44,7 +44,7 @@ def add_prescription(pid):
     patients.update_one({"_id": ObjectId(pid)}, {"$push": {"prescriptions": presc}})
     return jsonify({"message": "Prescription added", "id": str(presc["_id"])}), 201
 
-@prescriptions_bp.route("/<string:pid>/<string:rid>", methods=["PUT"])
+@prescriptions_bp.route("/<string:pid>/prescriptions/<string:rid>", methods=["PUT"])
 @jwt_required
 @admin_required
 def update_prescription(pid, rid):
@@ -64,7 +64,7 @@ def update_prescription(pid, rid):
         return jsonify({"error": "Prescription not found"}), 404
     return jsonify({"message": "Prescription updated"})
 
-@prescriptions_bp.route("/<string:pid>/<string:rid>", methods=["DELETE"])
+@prescriptions_bp.route("/<string:pid>/prescriptions/<string:rid>", methods=["DELETE"])
 @jwt_required
 @admin_required
 def delete_prescription(pid, rid):

@@ -1,9 +1,3 @@
-# ----------------------------------------------------------
-# seed_synthea_data.py
-# Load and clean Synthea CSVs into syntheaDB.patients
-# Author: Paul Johnston (B00888517)
-# ----------------------------------------------------------
-
 import csv
 from datetime import datetime, date
 from pymongo import MongoClient
@@ -14,9 +8,6 @@ import re
 
 CSV_DIR = os.path.join("data", "synthea_csv")
 
-# ----------------------------------------------------------
-# Helper Functions
-# ----------------------------------------------------------
 def years_between(dob_str):
     """Calculate age in years from birthdate string."""
     try:

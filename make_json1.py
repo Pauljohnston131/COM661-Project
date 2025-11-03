@@ -26,4 +26,4 @@ patients = generate_dummy_data()
 with open("patients.json", "w") as fout:
     json.dump(patients, fout, indent=4)
 
-print("✅ Mock patient data generated successfully!")
+print(" Mock patient data generated successfully!")

@@ -21,8 +21,18 @@ def years_between(dob_str):
 def title_case_name(given, family):
     """Format and clean full name (remove digits)."""
     name = f"{(given or '').strip()} {(family or '').strip()}".strip()
-    name = re.sub(r"\d+", "", name).strip()  # remove numbers
+    name = re.sub(r"\d+", "", name).strip()
     return name.title() if name else None
+
+
+def clean_doctor_name(name):
+    """Remove digits and ensure title case for doctor names."""
+    if not name:
+        return "Clinic GP"
+    name = re.sub(r"\d+", "", name).strip()
+    if not re.match(r"^(Dr\.|Clinic)", name, re.IGNORECASE):
+        name = "Dr. " + name
+    return name.title()
 
 
 def clean_date(d):
@@ -46,17 +56,14 @@ def age_group(age):
     else:
         return "Senior"
 
-# ----------------------------------------------------------
-# Load Supporting CSVs
-# ----------------------------------------------------------
 providers = {}
 prov_path = os.path.join(CSV_DIR, "providers.csv")
 if os.path.exists(prov_path):
     with open(prov_path, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            providers[row.get("Id") or row.get("ID")] = row.get("NAME") or "Clinic GP"
+            raw_name = row.get("NAME") or "Clinic GP"
+            providers[row.get("Id") or row.get("ID")] = clean_doctor_name(raw_name)
 
-# --- Conditions ---
 conditions_by_patient = defaultdict(list)
 cond_path = os.path.join(CSV_DIR, "conditions.csv")
 if os.path.exists(cond_path):
@@ -65,11 +72,9 @@ if os.path.exists(cond_path):
             pid = row.get("PATIENT") or row.get("Id")
             desc = row.get("DESCRIPTION") or "General Checkup"
             if pid:
-                # Clean up long condition names (remove parentheses, capitalise)
-                desc = desc.split("(")[0].strip().title()
+                desc = re.sub(r"\(.*?\)", "", desc).strip().title()
                 conditions_by_patient[pid].append(desc)
 
-# --- Encounters → Appointments ---
 encounters_by_patient = defaultdict(list)
 enc_path = os.path.join(CSV_DIR, "encounters.csv")
 if os.path.exists(enc_path):
@@ -77,7 +82,7 @@ if os.path.exists(enc_path):
         for row in csv.DictReader(f):
             pid = row.get("PATIENT")
             date_str = clean_date(row.get("START") or "2024-01-01")
-            doctor = providers.get(row.get("PROVIDER"), "Dr. Smith")
+            doctor = clean_doctor_name(providers.get(row.get("PROVIDER"), "Dr. Smith"))
             reason = row.get("REASONDESCRIPTION") or row.get("CLASS") or "Consultation"
             if pid:
                 encounters_by_patient[pid].append({
@@ -88,7 +93,6 @@ if os.path.exists(enc_path):
                     "status": "completed"
                 })
 
-# --- Medications → Prescriptions ---
 meds_by_patient = defaultdict(list)
 med_path = os.path.join(CSV_DIR, "medications.csv")
 if os.path.exists(med_path):
@@ -107,7 +111,6 @@ if os.path.exists(med_path):
                     "status": "active" if stop == "Unknown" else "completed"
                 })
 
-# --- CarePlans ---
 careplans_by_patient = defaultdict(list)
 cp_path = os.path.join(CSV_DIR, "careplans.csv")
 if os.path.exists(cp_path):
@@ -125,9 +128,6 @@ if os.path.exists(cp_path):
                     "stop": stop
                 })
 
-# ----------------------------------------------------------
-# Connect to MongoDB
-# ----------------------------------------------------------
 client = MongoClient("mongodb://127.0.0.1:27017")
 db = client["syntheaDB"]
 patients_col = db["patients"]
@@ -135,9 +135,6 @@ patients_col = db["patients"]
 print("Dropping existing patients collection in syntheaDB...")
 patients_col.drop()
 
-# ----------------------------------------------------------
-# Insert Cleaned Patients
-# ----------------------------------------------------------
 pat_path = os.path.join(CSV_DIR, "patients.csv")
 to_insert = []
 
@@ -147,12 +144,11 @@ with open(pat_path, newline="", encoding="utf-8") as f:
         name = title_case_name(row.get("FIRST"), row.get("LAST"))
         age = years_between(row.get("BIRTHDATE"))
 
-        # Skip incomplete or invalid records
         if not name or not age:
             continue
 
         condition = conditions_by_patient.get(pid, ["Check-up"])[0]
-        condition = condition.split("(")[0].strip().title()
+        condition = re.sub(r"\(.*?\)", "", condition).strip().title()
 
         patient = {
             "name": name,
@@ -170,7 +166,6 @@ with open(pat_path, newline="", encoding="utf-8") as f:
 if to_insert:
     patients_col.insert_many(to_insert)
     print(f"Inserted {len(to_insert)} cleaned patients into syntheaDB.patients")
-    # Print a quick sample summary for verification
     sample = to_insert[0]
     print("\nSample patient preview:")
     print(f"Name: {sample['name']}, Age: {sample['age']} ({sample['age_group']})")

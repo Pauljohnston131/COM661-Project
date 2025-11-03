@@ -5,7 +5,6 @@ client = MongoClient("mongodb://127.0.0.1:27017")
 db = client["syntheaDB"]
 users = db["users"]
 
-# Clear old users
 users.delete_many({})
 
 user_list = [
@@ -18,7 +17,7 @@ user_list = [
 
 for user in user_list:
     hashed_pw = bcrypt.hashpw(user["password"].encode("utf-8"), bcrypt.gensalt())
-    user["password"] = hashed_pw # ✅ convert to string before saving
+    user["password"] = hashed_pw 
     users.insert_one(user)
 
-print("✅ Users seeded into syntheaDB.users with readable bcrypt strings.")
+print("Users seeded into syntheaDB.users with readable bcrypt strings.")

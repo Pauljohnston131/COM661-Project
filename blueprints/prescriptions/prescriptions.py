@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 from bson import ObjectId
 from decorators import jwt_required, admin_required
+from utils import response
 import globals, re
 
 prescriptions_bp = Blueprint('prescriptions_bp', __name__, url_prefix='/api/v1.0/patients')
@@ -14,24 +15,29 @@ def is_valid_objectid(id):
 def list_prescriptions(pid):
     """List all prescriptions for a patient."""
     if not is_valid_objectid(pid):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid patient ID", status=400)
+    
     doc = patients.find_one({"_id": ObjectId(pid)}, {"prescriptions": 1, "_id": 0})
     if not doc:
-        return jsonify({"error": "Patient not found"}), 404
+        return response(False, message="Patient not found", status=404)
+    
     for p in doc.get("prescriptions", []):
         if isinstance(p.get("_id"), ObjectId):
             p["_id"] = str(p["_id"])
-    return jsonify(doc)
+    
+    return response(True, data={"prescriptions": doc.get("prescriptions", [])})
+
 
 @prescriptions_bp.route("/<string:pid>/prescriptions", methods=["POST"])
 @jwt_required
 def add_prescription(pid):
-    """Add prescription to patient."""
+    """Add a prescription to a patient."""
     if not is_valid_objectid(pid):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid patient ID", status=400)
+    
     body = request.get_json() or {}
     if not all(k in body for k in ("name", "start")):
-        return jsonify({"error": "Missing fields"}), 400
+        return response(False, message="Missing fields: name, start", status=400)
 
     presc = {
         "_id": ObjectId(),
@@ -42,27 +48,48 @@ def add_prescription(pid):
     }
 
     patients.update_one({"_id": ObjectId(pid)}, {"$push": {"prescriptions": presc}})
-    return jsonify({"message": "Prescription added", "id": str(presc["_id"])}), 201
+    return response(True, message="Prescription added", data={"id": str(presc["_id"])}, status=201)
+
 
 @prescriptions_bp.route("/<string:pid>/prescriptions/<string:rid>", methods=["PUT"])
 @jwt_required
 @admin_required
 def update_prescription(pid, rid):
-    """Update prescription details (admin only)."""
+    """Update prescription details (supports partial updates, admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(rid)):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid ID format", status=400)
+
     body = request.get_json() or {}
-    update_fields = {f"prescriptions.$.{k}": v for k, v in body.items() if k in ("name", "start", "stop", "status")}
+    update_fields = {
+        f"prescriptions.$.{k}": v
+        for k, v in body.items()
+        if k in ("name", "start", "stop", "status")
+    }
+
     if not update_fields:
-        return jsonify({"error": "No valid fields to update"}), 400
+        return response(False, message="No valid fields to update", status=400)
+
+    owner_check = patients.find_one({
+        "_id": ObjectId(pid),
+        "prescriptions._id": ObjectId(rid)
+    })
+    if not owner_check:
+        return response(False, message="Prescription not found for this patient", status=404)
 
     result = patients.update_one(
-        {"_id": ObjectId(pid), "prescriptions._id": ObjectId(rid)},
+        {
+            "_id": ObjectId(pid),
+            "prescriptions._id": ObjectId(rid)
+        },
         {"$set": update_fields}
     )
+
     if result.modified_count == 0:
-        return jsonify({"error": "Prescription not found"}), 404
-    return jsonify({"message": "Prescription updated"})
+        return response(False, message="Prescription not updated (no changes detected)", status=400)
+
+    return response(True, message="Prescription updated successfully", data={"updated_fields": list(body.keys())})
+
+
 
 @prescriptions_bp.route("/<string:pid>/prescriptions/<string:rid>", methods=["DELETE"])
 @jwt_required
@@ -70,11 +97,13 @@ def update_prescription(pid, rid):
 def delete_prescription(pid, rid):
     """Delete prescription (admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(rid)):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid ID", status=400)
+    
     result = patients.update_one(
         {"_id": ObjectId(pid)},
         {"$pull": {"prescriptions": {"_id": ObjectId(rid)}}}
     )
     if result.modified_count == 0:
-        return jsonify({"error": "Not found"}), 404
-    return jsonify({"message": "Prescription deleted"})
+        return response(False, message="Prescription not found", status=404)
+    
+    return response(True, message="Prescription deleted successfully")

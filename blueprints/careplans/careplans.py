@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 from bson import ObjectId
 from decorators import jwt_required, admin_required
+from utils import response
 import globals, re
 
 careplans_bp = Blueprint('careplans_bp', __name__, url_prefix='/api/v1.0/patients')
@@ -14,52 +15,76 @@ def is_valid_objectid(id):
 def list_careplans(pid):
     """List all careplans for a patient."""
     if not is_valid_objectid(pid):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid patient ID", status=400)
+    
     doc = patients.find_one({"_id": ObjectId(pid)}, {"careplans": 1, "_id": 0})
     if not doc:
-        return jsonify({"error": "Patient not found"}), 404
+        return response(False, message="Patient not found", status=404)
+    
     for c in doc.get("careplans", []):
         if isinstance(c.get("_id"), ObjectId):
             c["_id"] = str(c["_id"])
-    return jsonify(doc)
+    
+    return response(True, data={"careplans": doc.get("careplans", [])})
+
 
 @careplans_bp.route("/<string:pid>/careplans", methods=["POST"])
 @jwt_required
 def add_careplan(pid):
-    """Add careplan for a patient."""
+    """Add a careplan for a patient."""
     if not is_valid_objectid(pid):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid patient ID", status=400)
+    
     body = request.get_json() or {}
     if not all(k in body for k in ("description", "start")):
-        return jsonify({"error": "Missing fields"}), 400
+        return response(False, message="Missing required fields: description, start", status=400)
+    
     cp = {
         "_id": ObjectId(),
         "description": body["description"],
         "start": body["start"],
         "stop": body.get("stop")
     }
+    
     patients.update_one({"_id": ObjectId(pid)}, {"$push": {"careplans": cp}})
-    return jsonify({"message": "Careplan added", "id": str(cp["_id"])}), 201
+    return response(True, message="Careplan added successfully", data={"id": str(cp["_id"])}, status=201)
+
 
 @careplans_bp.route("/<string:pid>/careplans/<string:cid>", methods=["PUT"])
 @jwt_required
 @admin_required
 def update_careplan(pid, cid):
-    """Update careplan details (admin only)."""
+    """Update careplan details (supports partial updates, admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(cid)):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid ID format", status=400)
+    
     body = request.get_json() or {}
-    update_fields = {f"careplans.$.{k}": v for k, v in body.items() if k in ("description", "start", "stop")}
+    update_fields = {
+        f"careplans.$.{k}": v
+        for k, v in body.items()
+        if k in ("description", "start", "stop")
+    }
+
     if not update_fields:
-        return jsonify({"error": "No valid fields to update"}), 400
+        return response(False, message="No valid fields to update", status=400)
+
+    owner_check = patients.find_one({
+        "_id": ObjectId(pid),
+        "careplans._id": ObjectId(cid)
+    })
+    if not owner_check:
+        return response(False, message="Careplan not found for this patient", status=404)
 
     result = patients.update_one(
         {"_id": ObjectId(pid), "careplans._id": ObjectId(cid)},
         {"$set": update_fields}
     )
+
     if result.modified_count == 0:
-        return jsonify({"error": "Careplan not found"}), 404
-    return jsonify({"message": "Careplan updated"})
+        return response(False, message="Careplan not updated (no changes detected)", status=400)
+
+    return response(True, message="Careplan updated successfully", data={"updated_fields": list(body.keys())})
+
 
 @careplans_bp.route("/<string:pid>/careplans/<string:cid>", methods=["DELETE"])
 @jwt_required
@@ -67,11 +92,14 @@ def update_careplan(pid, cid):
 def delete_careplan(pid, cid):
     """Delete careplan (admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(cid)):
-        return jsonify({"error": "Invalid ID"}), 400
+        return response(False, message="Invalid ID format", status=400)
+    
     result = patients.update_one(
         {"_id": ObjectId(pid)},
         {"$pull": {"careplans": {"_id": ObjectId(cid)}}}
     )
+
     if result.modified_count == 0:
-        return jsonify({"error": "Not found"}), 404
-    return jsonify({"message": "Careplan deleted"})
+        return response(False, message="Careplan not found for this patient", status=404)
+
+    return response(True, message="Careplan deleted successfully")

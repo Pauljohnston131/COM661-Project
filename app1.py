@@ -280,9 +280,7 @@ def delete_patient(id):
         return jsonify({'error': 'Patient not found'}), 404
     return jsonify({'message': 'Patient deleted'})
 
-# ----------------------------------------------------------
-# Appointments
-# ----------------------------------------------------------
+
 @app.route("/api/v1.0/patients/<string:id>/appointments", methods=["POST"])
 @jwt_required
 @admin_required
@@ -291,7 +289,6 @@ def add_appointment(id):
     if not is_valid_objectid(id):
         return jsonify({'error': 'Invalid patient ID'}), 400
 
-    # ✅ Ensure the patient actually exists
     patient = patients.find_one({"_id": ObjectId(id)})
     if not patient:
         return jsonify({'error': 'Patient not found'}), 404
@@ -357,9 +354,6 @@ def delete_appointment(pid, aid):
         return jsonify({'error': 'Not found'}), 404
     return jsonify({'message': 'Appointment deleted'})
 
-# ----------------------------------------------------------
-# Prescriptions
-# ----------------------------------------------------------
 @app.route("/api/v1.0/patients/<string:id>/prescriptions", methods=["GET"])
 @jwt_required
 def list_prescriptions(id):
@@ -408,9 +402,6 @@ def delete_prescription(pid, rid):
         return jsonify({'error': 'Not found'}), 404
     return jsonify({'message': 'Prescription deleted'})
 
-# ----------------------------------------------------------
-# Careplans
-# ----------------------------------------------------------
 @app.route("/api/v1.0/patients/<string:id>/careplans", methods=["GET"])
 @jwt_required
 def list_careplans(id):
@@ -458,9 +449,6 @@ def delete_careplan(pid, cid):
         return jsonify({'error': 'Not found'}), 404
     return jsonify({'message': 'Careplan deleted'})
 
-# ----------------------------------------------------------
-# Analytics
-# ----------------------------------------------------------
 @app.route("/api/v1.0/search", methods=["GET"])
 @jwt_required
 def search_patients():
@@ -505,9 +493,6 @@ def careplans_stats():
     ]
     return jsonify(list(patients.aggregate(pipeline)))
 
-# ----------------------------------------------------------
-# Error Handling
-# ----------------------------------------------------------
 @app.errorhandler(404)
 def not_found(e):
     return jsonify({"error": "Not found"}), 404
@@ -516,9 +501,6 @@ def not_found(e):
 def internal_error(e):
     return jsonify({"error": "Server error"}), 500
 
-# ----------------------------------------------------------
-# Run App
-# ----------------------------------------------------------
 if __name__ == "__main__":
     print(f"Using MongoDB database: {db_name}")
     app.run(debug=True)

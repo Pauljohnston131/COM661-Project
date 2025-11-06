@@ -8,14 +8,17 @@ from utils import response
 patients_bp = Blueprint('patients_bp', __name__, url_prefix='/api/v1.0/patients')
 patients = globals.db["patients"]
 
+# helper: validate objectid
 def is_valid_objectid(id):
     return bool(re.fullmatch(r"[0-9a-fA-F]{24}", id))
 
+# helper: parse incoming data
 def incoming_data():
     if request.is_json:
         return request.get_json(silent=True) or {}
     return request.form or {}
 
+# helper: validate patient input
 def validate_patient_data(data):
     try:
         age = int(data.get("age", -1))
@@ -27,11 +30,10 @@ def validate_patient_data(data):
         return "Missing required fields"
     return None
 
-
+# get patients
 @patients_bp.route("/", methods=["GET"])
 @jwt_required
 def get_patients():
-    """Get paginated list of patients (filter by condition)."""
     try:
         page = max(1, int(request.args.get("page", 1)))
         limit = max(1, min(50, int(request.args.get("limit", 10))))
@@ -63,11 +65,10 @@ def get_patients():
         "patients": results
     })
 
-
+# post add patient
 @patients_bp.route("/", methods=["POST"])
 @jwt_required
 def add_patient():
-    """Add a new patient."""
     body = incoming_data()
     error = validate_patient_data(body)
     if error:
@@ -89,10 +90,10 @@ def add_patient():
                     data={"id": str(result.inserted_id)},
                     status=201)
 
+# get patient by id
 @patients_bp.route("/<string:id>", methods=["GET"])
 @jwt_required
 def get_patient(id):
-    """Get full details of a patient by ID."""
     if not is_valid_objectid(id):
         return response(False, message="Invalid patient ID", status=400)
     
@@ -108,10 +109,10 @@ def get_patient(id):
     
     return response(True, data=p, message="Patient retrieved successfully")
 
+# put update patient
 @patients_bp.route("/<string:id>", methods=["PUT"])
 @jwt_required
 def update_patient(id):
-    """Update patient information (supports partial updates)."""
     if not is_valid_objectid(id):
         return response(False, message="Invalid patient ID", status=400)
     
@@ -148,12 +149,11 @@ def update_patient(id):
     
     return response(True, message="Patient updated successfully", data={"updated_fields": list(update_fields.keys())})
 
-
+# delete patient
 @patients_bp.route("/<string:id>", methods=["DELETE"])
 @jwt_required
 @admin_required
 def delete_patient(id):
-    """Delete a patient (admin only)."""
     if not is_valid_objectid(id):
         return response(False, message="Invalid ID", status=400)
     

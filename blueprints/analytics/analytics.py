@@ -6,8 +6,8 @@ import globals
 analytics_bp = Blueprint("analytics_bp", __name__, url_prefix="/api/v1.0")
 patients = globals.db["patients"]
 
+# helper: pagination
 def parse_pagination():
-    """Helper to extract skip/limit from query params."""
     try:
         skip = max(0, int(request.args.get("skip", 0)))
         limit = max(1, min(50, int(request.args.get("limit", 10))))
@@ -15,12 +15,12 @@ def parse_pagination():
         skip, limit = 0, 10
     return skip, limit
 
+# get search
 @analytics_bp.route("/search", methods=["GET"])
 @jwt_required
 def search_patients():
-    """Search patients by name or condition (case-insensitive)."""
     q = request.args.get("q", "")
-    gender = request.args.get("gender")  # optional demographic filter
+    gender = request.args.get("gender")
     skip, limit = parse_pagination()
 
     if not q:
@@ -57,10 +57,10 @@ def search_patients():
         "results": data
     })
 
+# get appointment stats
 @analytics_bp.route("/stats/appointments", methods=["GET"])
 @jwt_required
 def appointment_stats():
-    """Count appointments per doctor with optional year/gender filters and pagination."""
     year = request.args.get("year")
     gender = request.args.get("gender")
     skip, limit = parse_pagination()
@@ -91,10 +91,10 @@ def appointment_stats():
         "results": stats
     })
 
+# get prescription stats
 @analytics_bp.route("/stats/prescriptions", methods=["GET"])
 @jwt_required
 def prescription_stats():
-    """Count prescriptions by medication name with optional status/gender filters and pagination."""
     status = request.args.get("status")
     gender = request.args.get("gender")
     skip, limit = parse_pagination()
@@ -124,10 +124,10 @@ def prescription_stats():
         "results": stats
     })
 
+# get careplan stats
 @analytics_bp.route("/stats/careplans", methods=["GET"])
 @jwt_required
 def careplan_stats():
-    """Count careplans by description with optional year/gender filters and pagination."""
     year = request.args.get("year")
     gender = request.args.get("gender")
     skip, limit = parse_pagination()
@@ -157,15 +157,14 @@ def careplan_stats():
         "results": stats
     })
 
+# get overview stats
 @analytics_bp.route("/stats/overview", methods=["GET"])
 @jwt_required
 def overview_stats():
-    """Combined analytics overview with optional gender filter."""
     gender = request.args.get("gender")
     limit = int(request.args.get("limit", 5))
 
     match_stage = {"gender": {"$regex": gender, "$options": "i"}} if gender else {}
-
     pipeline = []
     if match_stage:
         pipeline.append({"$match": match_stage})
@@ -209,4 +208,34 @@ def overview_stats():
         "filters": {"gender": gender or "all"},
         "limit": limit,
         "results": stats[0] if stats else {}
+    })
+
+# get geo nearby
+@analytics_bp.route("/geo/nearby", methods=["GET"])
+@jwt_required
+def nearby_patients():
+    try:
+        lon = float(request.args.get("lon"))
+        lat = float(request.args.get("lat"))
+        max_distance = int(request.args.get("max_distance", 5000))  # meters
+    except (TypeError, ValueError):
+        return jsonify({"error": "Invalid or missing coordinates"}), 400
+
+    query = {
+        "location": {
+            "$near": {
+                "$geometry": {"type": "Point", "coordinates": [lon, lat]},
+                "$maxDistance": max_distance
+            }
+        }
+    }
+
+    results = list(patients.find(query, {"name": 1, "town": 1, "location": 1}).limit(10))
+    for r in results:
+        r["_id"] = str(r["_id"])
+
+    return jsonify({
+        "query": {"lon": lon, "lat": lat, "max_distance": max_distance},
+        "count": len(results),
+        "nearby_patients": results
     })

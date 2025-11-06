@@ -5,11 +5,13 @@ from bson import ObjectId
 from collections import defaultdict
 import os
 import re
+import random
 
+# paths and setup
 CSV_DIR = os.path.join("data", "synthea_csv")
 
+# helper: calculate age
 def years_between(dob_str):
-    """Calculate age in years from birthdate string."""
     try:
         dob = datetime.strptime(dob_str[:10], "%Y-%m-%d").date()
         today = date.today()
@@ -17,16 +19,14 @@ def years_between(dob_str):
     except:
         return None
 
-
+# helper: clean patient name
 def title_case_name(given, family):
-    """Format and clean full name (remove digits)."""
     name = f"{(given or '').strip()} {(family or '').strip()}".strip()
     name = re.sub(r"\d+", "", name).strip()
     return name.title() if name else None
 
-
+# helper: clean doctor name
 def clean_doctor_name(name):
-    """Remove digits and ensure title case for doctor names."""
     if not name:
         return "Clinic GP"
     name = re.sub(r"\d+", "", name).strip()
@@ -34,17 +34,15 @@ def clean_doctor_name(name):
         name = "Dr. " + name
     return name.title()
 
-
+# helper: clean date
 def clean_date(d):
-    """Ensure valid ISO-like date string."""
     try:
         return datetime.strptime(d[:10], "%Y-%m-%d").strftime("%Y-%m-%d")
     except:
         return "Unknown"
 
-
+# helper: assign age group
 def age_group(age):
-    """Group patients into age bands."""
     if age is None:
         return "Unknown"
     if age < 18:
@@ -56,6 +54,7 @@ def age_group(age):
     else:
         return "Senior"
 
+# load providers
 providers = {}
 prov_path = os.path.join(CSV_DIR, "providers.csv")
 if os.path.exists(prov_path):
@@ -64,6 +63,7 @@ if os.path.exists(prov_path):
             raw_name = row.get("NAME") or "Clinic GP"
             providers[row.get("Id") or row.get("ID")] = clean_doctor_name(raw_name)
 
+# load conditions
 conditions_by_patient = defaultdict(list)
 cond_path = os.path.join(CSV_DIR, "conditions.csv")
 if os.path.exists(cond_path):
@@ -75,6 +75,7 @@ if os.path.exists(cond_path):
                 desc = re.sub(r"\(.*?\)", "", desc).strip().title()
                 conditions_by_patient[pid].append(desc)
 
+# load encounters
 encounters_by_patient = defaultdict(list)
 enc_path = os.path.join(CSV_DIR, "encounters.csv")
 if os.path.exists(enc_path):
@@ -93,6 +94,7 @@ if os.path.exists(enc_path):
                     "status": "completed"
                 })
 
+# load medications
 meds_by_patient = defaultdict(list)
 med_path = os.path.join(CSV_DIR, "medications.csv")
 if os.path.exists(med_path):
@@ -111,6 +113,7 @@ if os.path.exists(med_path):
                     "status": "active" if stop == "Unknown" else "completed"
                 })
 
+# load careplans
 careplans_by_patient = defaultdict(list)
 cp_path = os.path.join(CSV_DIR, "careplans.csv")
 if os.path.exists(cp_path):
@@ -128,6 +131,7 @@ if os.path.exists(cp_path):
                     "stop": stop
                 })
 
+# connect to MongoDB
 client = MongoClient("mongodb://127.0.0.1:27017")
 db = client["syntheaDB"]
 patients_col = db["patients"]
@@ -135,6 +139,15 @@ patients_col = db["patients"]
 print("Dropping existing patients collection in syntheaDB...")
 patients_col.drop()
 
+# sample towns and coordinates
+town_boxes = {
+    "Belfast": [54.5733, -5.9689, 54.6233, -5.8789],
+    "Derry/LondonDerry": [55.0000, -7.3700, 55.0500, -7.2600],
+    "Letterkenny": [54.9300, -7.7800, 54.9700, -7.7000],
+    "Donegal": [54.6400, -8.1500, 54.6700, -8.1000]
+}
+
+# read patients and insert
 pat_path = os.path.join(CSV_DIR, "patients.csv")
 to_insert = []
 
@@ -149,12 +162,18 @@ with open(pat_path, newline="", encoding="utf-8") as f:
 
         condition = conditions_by_patient.get(pid, ["Check-up"])[0]
         condition = re.sub(r"\(.*?\)", "", condition).strip().title()
+        town = random.choice(list(town_boxes.keys()))
+        box = town_boxes[town]
+        rand_lat = box[0] + (box[2] - box[0]) * random.random()
+        rand_long = box[1] + (box[3] - box[1]) * random.random()
 
         patient = {
             "name": name,
             "age": age,
             "age_group": age_group(age),
             "condition": condition,
+            "town": town,
+            "location": {"type": "Point", "coordinates": [rand_long, rand_lat]},
             "image_url": None,
             "appointments": encounters_by_patient.get(pid, []),
             "prescriptions": meds_by_patient.get(pid, []),
@@ -163,13 +182,15 @@ with open(pat_path, newline="", encoding="utf-8") as f:
         }
         to_insert.append(patient)
 
+# insert into MongoDB
 if to_insert:
     patients_col.insert_many(to_insert)
-    print(f"Inserted {len(to_insert)} cleaned patients into syntheaDB.patients")
+    print(f"Inserted {len(to_insert)} cleaned patients with location data into syntheaDB.patients")
     sample = to_insert[0]
     print("\nSample patient preview:")
     print(f"Name: {sample['name']}, Age: {sample['age']} ({sample['age_group']})")
-    print(f"Condition: {sample['condition']}")
+    print(f"Condition: {sample['condition']}, Town: {sample['town']}")
+    print(f"Coordinates: {sample['location']['coordinates']}")
     print(f"Appointments: {len(sample['appointments'])}, "
           f"Prescriptions: {len(sample['prescriptions'])}, "
           f"Careplans: {len(sample['careplans'])}")

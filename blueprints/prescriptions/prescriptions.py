@@ -7,13 +7,14 @@ import globals, re
 prescriptions_bp = Blueprint('prescriptions_bp', __name__, url_prefix='/api/v1.0/patients')
 patients = globals.db["patients"]
 
+# helper: validate objectid
 def is_valid_objectid(id):
     return bool(re.fullmatch(r"[0-9a-fA-F]{24}", id))
 
+# get prescriptions
 @prescriptions_bp.route("/<string:pid>/prescriptions", methods=["GET"])
 @jwt_required
 def list_prescriptions(pid):
-    """List all prescriptions for a patient."""
     if not is_valid_objectid(pid):
         return response(False, message="Invalid patient ID", status=400)
     
@@ -27,11 +28,10 @@ def list_prescriptions(pid):
     
     return response(True, data={"prescriptions": doc.get("prescriptions", [])})
 
-
+# post add prescription
 @prescriptions_bp.route("/<string:pid>/prescriptions", methods=["POST"])
 @jwt_required
 def add_prescription(pid):
-    """Add a prescription to a patient."""
     if not is_valid_objectid(pid):
         return response(False, message="Invalid patient ID", status=400)
     
@@ -50,12 +50,11 @@ def add_prescription(pid):
     patients.update_one({"_id": ObjectId(pid)}, {"$push": {"prescriptions": presc}})
     return response(True, message="Prescription added", data={"id": str(presc["_id"])}, status=201)
 
-
+# put update prescription
 @prescriptions_bp.route("/<string:pid>/prescriptions/<string:rid>", methods=["PUT"])
 @jwt_required
 @admin_required
 def update_prescription(pid, rid):
-    """Update prescription details (supports partial updates, admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(rid)):
         return response(False, message="Invalid ID format", status=400)
 
@@ -89,13 +88,11 @@ def update_prescription(pid, rid):
 
     return response(True, message="Prescription updated successfully", data={"updated_fields": list(body.keys())})
 
-
-
+# delete prescription
 @prescriptions_bp.route("/<string:pid>/prescriptions/<string:rid>", methods=["DELETE"])
 @jwt_required
 @admin_required
 def delete_prescription(pid, rid):
-    """Delete prescription (admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(rid)):
         return response(False, message="Invalid ID", status=400)
     

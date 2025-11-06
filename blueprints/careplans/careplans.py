@@ -7,13 +7,14 @@ import globals, re
 careplans_bp = Blueprint('careplans_bp', __name__, url_prefix='/api/v1.0/patients')
 patients = globals.db["patients"]
 
+# helper: validate objectid
 def is_valid_objectid(id):
     return bool(re.fullmatch(r"[0-9a-fA-F]{24}", id))
 
+# get careplans
 @careplans_bp.route("/<string:pid>/careplans", methods=["GET"])
 @jwt_required
 def list_careplans(pid):
-    """List all careplans for a patient."""
     if not is_valid_objectid(pid):
         return response(False, message="Invalid patient ID", status=400)
     
@@ -27,11 +28,10 @@ def list_careplans(pid):
     
     return response(True, data={"careplans": doc.get("careplans", [])})
 
-
+# post add careplan
 @careplans_bp.route("/<string:pid>/careplans", methods=["POST"])
 @jwt_required
 def add_careplan(pid):
-    """Add a careplan for a patient."""
     if not is_valid_objectid(pid):
         return response(False, message="Invalid patient ID", status=400)
     
@@ -49,12 +49,11 @@ def add_careplan(pid):
     patients.update_one({"_id": ObjectId(pid)}, {"$push": {"careplans": cp}})
     return response(True, message="Careplan added successfully", data={"id": str(cp["_id"])}, status=201)
 
-
+# put update careplan
 @careplans_bp.route("/<string:pid>/careplans/<string:cid>", methods=["PUT"])
 @jwt_required
 @admin_required
 def update_careplan(pid, cid):
-    """Update careplan details (supports partial updates, admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(cid)):
         return response(False, message="Invalid ID format", status=400)
     
@@ -85,12 +84,11 @@ def update_careplan(pid, cid):
 
     return response(True, message="Careplan updated successfully", data={"updated_fields": list(body.keys())})
 
-
+# delete careplan
 @careplans_bp.route("/<string:pid>/careplans/<string:cid>", methods=["DELETE"])
 @jwt_required
 @admin_required
 def delete_careplan(pid, cid):
-    """Delete careplan (admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(cid)):
         return response(False, message="Invalid ID format", status=400)
     

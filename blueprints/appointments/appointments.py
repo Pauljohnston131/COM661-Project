@@ -7,15 +7,15 @@ from utils import response
 appointments_bp = Blueprint('appointments_bp', __name__, url_prefix='/api/v1.0/patients')
 patients = globals.db["patients"]
 
+# helper: validate objectid
 def is_valid_objectid(id):
     return bool(re.fullmatch(r"[0-9a-fA-F]{24}", id))
 
-
+# post add appointment
 @appointments_bp.route("/<string:pid>", methods=["POST"])
 @jwt_required
 @admin_required
 def add_appointment(pid):
-    """Add appointment to a patient (admin only)."""
     if not is_valid_objectid(pid):
         return response(False, message="Invalid patient ID", status=400)
 
@@ -39,11 +39,11 @@ def add_appointment(pid):
     patients.update_one({"_id": ObjectId(pid)}, {"$push": {"appointments": appointment}})
     return response(True, message="Appointment added successfully", data={"appointment_id": str(appointment["_id"])}, status=201)
 
+# put update appointment
 @appointments_bp.route("/<string:pid>/<string:aid>", methods=["PUT"])
 @jwt_required
 @admin_required
 def update_appointment(pid, aid):
-    """Update appointment details (supports partial updates, admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(aid)):
         return response(False, message="Invalid ID format", status=400)
 
@@ -73,11 +73,10 @@ def update_appointment(pid, aid):
 
     return response(True, message="Appointment updated successfully", data={"updated_fields": list(body.keys())})
 
-
+# get appointment
 @appointments_bp.route("/<string:pid>/<string:aid>", methods=["GET"])
 @jwt_required
 def get_appointment(pid, aid):
-    """Get details of a single appointment."""
     if not (is_valid_objectid(pid) and is_valid_objectid(aid)):
         return response(False, message="Invalid ID format", status=400)
 
@@ -92,12 +91,11 @@ def get_appointment(pid, aid):
     appt["_id"] = str(appt["_id"])
     return response(True, data=appt, message="Appointment retrieved successfully")
 
-
+# delete appointment
 @appointments_bp.route("/<string:pid>/<string:aid>", methods=["DELETE"])
 @jwt_required
 @admin_required
 def delete_appointment(pid, aid):
-    """Delete appointment (admin only)."""
     if not (is_valid_objectid(pid) and is_valid_objectid(aid)):
         return response(False, message="Invalid ID format", status=400)
 
